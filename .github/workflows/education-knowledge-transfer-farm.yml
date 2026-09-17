@@ -1,0 +1,83 @@
+name: CEREBRON Farm 28 Education Knowledge Transfer
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  farm:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - role: LEARNING_SCIENCE_SPECIALIST
+            mission: Analyze learning science, retention, transfer, and evidence quality.
+          - role: PEDAGOGY_SPECIALIST
+            mission: Analyze instructional design and pedagogical mechanisms.
+          - role: CURRICULUM_ARCHITECT
+            mission: Design prerequisite graphs, sequencing, and curriculum structure.
+          - role: KNOWLEDGE_REPRESENTATION_SPECIALIST
+            mission: Structure concepts, relations, ontologies, and misconceptions.
+          - role: EXPLANATION_ENGINEER
+            mission: Analyze explanation quality across expertise levels.
+          - role: ASSESSMENT_SPECIALIST
+            mission: Design valid assessments that distinguish recall from mastery.
+          - role: TRANSFER_LEARNING_SPECIALIST
+            mission: Analyze near and far transfer and conditions for generalization.
+          - role: MEMORY_RETENTION_SPECIALIST
+            mission: Analyze spacing, retrieval, forgetting, and durable retention.
+          - role: METACOGNITION_SPECIALIST
+            mission: Analyze calibration, self-monitoring, and learning-to-learn.
+          - role: MISCONCEPTION_DIAGNOSTICIAN
+            mission: Detect misconceptions and design corrective interventions.
+          - role: ADAPTIVE_LEARNING_ARCHITECT
+            mission: Analyze personalization, adaptive sequencing, and learner models.
+          - role: HUMAN_AI_TUTORING_SPECIALIST
+            mission: Analyze safe and effective human-AI tutoring architectures.
+          - role: KNOWLEDGE_TRANSFER_ENGINEER
+            mission: Analyze transfer from experts, teams, documents, and institutions.
+          - role: TACIT_KNOWLEDGE_SPECIALIST
+            mission: Analyze capture and transmission of tacit procedural knowledge.
+          - role: ORGANIZATIONAL_LEARNING_SPECIALIST
+            mission: Analyze institutional memory and capability preservation.
+          - role: ACCESSIBILITY_INCLUSION_SPECIALIST
+            mission: Analyze accessibility, inclusion, and barriers to knowledge transfer.
+          - role: EVIDENCE_METHODS_AUDITOR
+            mission: Audit causal claims, study design, and evidence quality in education.
+          - role: EDUCATION_RED_TEAM
+            mission: Attack assumptions, metrics, proxies, and failure modes.
+          - role: INDEPENDENT_REPLICATOR
+            mission: Independently reproduce key conclusions and identify disagreements.
+          - role: OMEGA_EDUCATION_JUDGE
+            mission: Synthesize only evidence-supported conclusions and unresolved unknowns.
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install --quiet gradio_client
+      - name: Execute real external AI attempt
+        env:
+          ROLE: ${{ matrix.role }}
+          MISSION: ${{ matrix.mission }}
+          MODEL: huggingface-projects/llama-3.2-3B-Instruct
+        run: python worker.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: farm28-${{ matrix.role }}
+          path: outputs/*.json
+
+  omega-fusion:
+    needs: farm
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          echo 'Farm 28 wave complete.' > omega-summary.txt
+          echo 'Individual external model outputs remain unreviewed until artifact audit.' >> omega-summary.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: education-knowledge-transfer-farm-28-omega-packet
+          path: omega-summary.txt
