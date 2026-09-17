@@ -12,53 +12,33 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - role: LEARNING_SCIENCE_SPECIALIST
-            mission: Analyze learning science, retention, transfer, and evidence quality.
-          - role: PEDAGOGY_SPECIALIST
-            mission: Analyze instructional design and pedagogical mechanisms.
-          - role: CURRICULUM_ARCHITECT
-            mission: Design prerequisite graphs, sequencing, and curriculum structure.
-          - role: KNOWLEDGE_REPRESENTATION_SPECIALIST
-            mission: Structure concepts, relations, ontologies, and misconceptions.
-          - role: EXPLANATION_ENGINEER
-            mission: Analyze explanation quality across expertise levels.
-          - role: ASSESSMENT_SPECIALIST
-            mission: Design valid assessments that distinguish recall from mastery.
-          - role: TRANSFER_LEARNING_SPECIALIST
-            mission: Analyze near and far transfer and conditions for generalization.
-          - role: MEMORY_RETENTION_SPECIALIST
-            mission: Analyze spacing, retrieval, forgetting, and durable retention.
-          - role: METACOGNITION_SPECIALIST
-            mission: Analyze calibration, self-monitoring, and learning-to-learn.
-          - role: MISCONCEPTION_DIAGNOSTICIAN
-            mission: Detect misconceptions and design corrective interventions.
-          - role: ADAPTIVE_LEARNING_ARCHITECT
-            mission: Analyze personalization, adaptive sequencing, and learner models.
-          - role: HUMAN_AI_TUTORING_SPECIALIST
-            mission: Analyze safe and effective human-AI tutoring architectures.
-          - role: KNOWLEDGE_TRANSFER_ENGINEER
-            mission: Analyze transfer from experts, teams, documents, and institutions.
-          - role: TACIT_KNOWLEDGE_SPECIALIST
-            mission: Analyze capture and transmission of tacit procedural knowledge.
-          - role: ORGANIZATIONAL_LEARNING_SPECIALIST
-            mission: Analyze institutional memory and capability preservation.
-          - role: ACCESSIBILITY_INCLUSION_SPECIALIST
-            mission: Analyze accessibility, inclusion, and barriers to knowledge transfer.
-          - role: EVIDENCE_METHODS_AUDITOR
-            mission: Audit causal claims, study design, and evidence quality in education.
-          - role: EDUCATION_RED_TEAM
-            mission: Attack assumptions, metrics, proxies, and failure modes.
-          - role: INDEPENDENT_REPLICATOR
-            mission: Independently reproduce key conclusions and identify disagreements.
-          - role: OMEGA_EDUCATION_JUDGE
-            mission: Synthesize only evidence-supported conclusions and unresolved unknowns.
+          - {role: LEARNING_SCIENCE_SPECIALIST, mission: Analyze learning science retention transfer and evidence quality.}
+          - {role: PEDAGOGY_SPECIALIST, mission: Analyze instructional design and pedagogical mechanisms.}
+          - {role: CURRICULUM_ARCHITECT, mission: Design prerequisite graphs sequencing and curriculum structure.}
+          - {role: KNOWLEDGE_REPRESENTATION_SPECIALIST, mission: Structure concepts relations ontologies and misconceptions.}
+          - {role: EXPLANATION_ENGINEER, mission: Analyze explanation quality across expertise levels.}
+          - {role: ASSESSMENT_SPECIALIST, mission: Design valid assessments that distinguish recall from mastery.}
+          - {role: TRANSFER_LEARNING_SPECIALIST, mission: Analyze near and far transfer and conditions for generalization.}
+          - {role: MEMORY_RETENTION_SPECIALIST, mission: Analyze spacing retrieval forgetting and durable retention.}
+          - {role: METACOGNITION_SPECIALIST, mission: Analyze calibration self-monitoring and learning-to-learn.}
+          - {role: MISCONCEPTION_DIAGNOSTICIAN, mission: Detect misconceptions and design corrective interventions.}
+          - {role: ADAPTIVE_LEARNING_ARCHITECT, mission: Analyze personalization adaptive sequencing and learner models.}
+          - {role: HUMAN_AI_TUTORING_SPECIALIST, mission: Analyze safe and effective human-AI tutoring architectures.}
+          - {role: KNOWLEDGE_TRANSFER_ENGINEER, mission: Analyze transfer from experts teams documents and institutions.}
+          - {role: TACIT_KNOWLEDGE_SPECIALIST, mission: Analyze capture and transmission of tacit procedural knowledge.}
+          - {role: ORGANIZATIONAL_LEARNING_SPECIALIST, mission: Analyze institutional memory and capability preservation.}
+          - {role: ACCESSIBILITY_INCLUSION_SPECIALIST, mission: Analyze accessibility inclusion and barriers to knowledge transfer.}
+          - {role: EVIDENCE_METHODS_AUDITOR, mission: Audit causal claims study design and evidence quality in education.}
+          - {role: EDUCATION_RED_TEAM, mission: Attack assumptions metrics proxies and failure modes.}
+          - {role: INDEPENDENT_REPLICATOR, mission: Independently reproduce key conclusions and identify disagreements.}
+          - {role: OMEGA_EDUCATION_JUDGE, mission: Synthesize only evidence-supported conclusions and unresolved unknowns.}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - run: pip install --quiet gradio_client
-      - name: Execute real external AI attempt
+      - run: pip install -q hf-gradio
+      - name: Execute external AI attempt
         env:
           ROLE: ${{ matrix.role }}
           MISSION: ${{ matrix.mission }}
@@ -67,17 +47,32 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: farm28-${{ matrix.role }}
-          path: outputs/*.json
+          path: outputs/${{ matrix.role }}.json
 
   omega-fusion:
     needs: farm
     if: always()
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: farm28-*
+          path: gathered
+          merge-multiple: true
       - run: |
-          echo 'Farm 28 wave complete.' > omega-summary.txt
-          echo 'Individual external model outputs remain unreviewed until artifact audit.' >> omega-summary.txt
+          python - <<'PY'
+          import json,pathlib
+          rows=[]
+          for p in pathlib.Path('gathered').glob('*.json'):
+              try: rows.append(json.loads(p.read_text()))
+              except Exception: pass
+          ok=sum(bool(r.get('inference_success')) for r in rows)
+          packet={'farm':28,'roles_returned':len(rows),'successful_external_ai_calls':ok,'failed_external_ai_calls':len(rows)-ok,'model_families':sorted(set(r.get('model','') for r in rows if r.get('model'))),'status':'UNREVIEWED_EXTERNAL_AGENT_OUTPUT','results':rows}
+          pathlib.Path('omega').mkdir(exist_ok=True)
+          pathlib.Path('omega/farm28-omega.json').write_text(json.dumps(packet,ensure_ascii=False,indent=2))
+          print(json.dumps({k:packet[k] for k in ('roles_returned','successful_external_ai_calls','failed_external_ai_calls','model_families','status')}))
+          PY
       - uses: actions/upload-artifact@v4
         with:
           name: education-knowledge-transfer-farm-28-omega-packet
-          path: omega-summary.txt
+          path: omega/farm28-omega.json
